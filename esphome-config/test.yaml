@@ -1,0 +1,33 @@
+---
+substitutions:
+  device: esp32k4r2
+  name: esp32k4r2
+  reboot_timeout: 14d
+  threshold: '15'
+  update_interval: 10min
+
+esphome:
+  name: test
+  friendly_name: test
+  name_add_mac_suffix: yes
+
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+<<: !include common/common.yaml
+
+binary_sensor:
+  - !include common/binary_sensor/status.yaml
+
+sensor:
+  - !include common/sensor/wifi-signal.yaml
+  - !include common/sensor/uptime.yaml
+
+switch:
+  - !include common/switch/restart.yaml

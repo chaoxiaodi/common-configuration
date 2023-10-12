@@ -1,0 +1,24 @@
+# 基础替换变量
+reboot_timeout: 14d
+threshold: '15'
+update_interval: 10min
+
+# 按键与GPIO替换
+key_1: GPIO9
+key_2: GPIO8
+key_3: GPIO7
+key_4: GPIO6
+key_5: GPIO5
+key_6: GPIO4
+key_7: GPIO20
+key_8: GPIO19
+key_9: GPIO18
+
+# led 灯 gpio
+light_pin_1: GPIO10
+
+# 输出接继电器 gpio
+relay_pin_1: GPIO0
+relay_pin_2: GPIO1
+relay_pin_3: GPIO2
+relay_pin_4: GPIO3

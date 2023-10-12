@@ -1,0 +1,20 @@
+# 根据按键 点亮对应的led灯珠
+# 每次单击按下按键 对应位置led闪烁一次作为状态反馈
+# 接受两个参数
+# 从哪个灯珠到那个灯珠亮 from/to
+id: turn_on_led_by_key
+parameters:
+  led_num_from: int
+  led_num_to: int
+then:
+  light.addressable_set:
+    id: led_light
+    color_brightness: 100%
+    range_from: !lambda return led_num_from;
+    range_to: !lambda return led_num_to;
+    red: !lambda |-
+      return float(random(100) / 100.0);
+    green: !lambda |-
+      return float(random(100) / 100.0);
+    blue: !lambda |-
+      return float(random(100) / 100.0);

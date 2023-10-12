@@ -1,0 +1,51 @@
+# 切换灯光效果
+# 用于双击灯光效果切换 按顺序切换led灯中预设的灯效
+# 用于三连击检测当前设备状态
+# op 参数解释
+#    0 双击切换灯光效果 根据预定义的变量切换灯光效果
+#    1 状态为已经连接api  蓝灯闪烁 
+#    2 状态为已经连接wifi 绿灯闪烁
+#    3 状态为未连接到wifi 红灯闪烁
+id: change_led_effect
+parameters:
+  op: int
+then:
+  lambda: |-
+    if (id(led_effect_selected) > 9) {
+      id(led_effect_selected) = 1;
+    } else {
+      id(led_effect_selected) += 1;
+    }
+
+    float r = float(random(100) / 100.0);
+    float g = float(random(100) / 100.0);
+    float b = float(random(100) / 100.0);
+    int effect_id = 7;
+
+    if (op == 0) {
+      effect_id = id(led_effect_selected);
+    }
+    if (op == 1) {
+      r = 0.0;
+      g = 0.0;
+      b = 1.0;
+    }
+    if (op == 2) {
+      r = 0.0;
+      g = 1.0;
+      b = 0.0;
+    }
+    if (op == 3) {
+      r = 1.0;
+      g = 0.0;
+      b = 0.0;
+    }
+
+    auto call = id(led_light).turn_on();
+    // call.set_transition_length(1000); // in ms
+    call.set_color_brightness(1.0); // 1.0 is full brightness
+    call.set_color_mode(ColorMode::RGB);
+    call.set_rgb(r, g, b); // color in RGB order, this example is purple
+    call.set_effect(effect_id);
+    // perform action:
+    call.perform();

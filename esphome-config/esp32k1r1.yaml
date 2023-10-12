@@ -1,0 +1,150 @@
+# esphome 引用说明
+# 当需要把文件内容当作key/value引用的时候 在对应缩进 使用 <<: !include filename
+# 当需要把文件内容当作列表中的一项的时候   在对应缩进 使用 - !include filename
+# 当需要引用变量(替换)的时候 使用 $
+# 变量替换举例 foo: bar
+# name: $foo 这样配置说明 name 最后的值为 bar
+# name: ${foo}_1 这样配置说明 name 最后值为 bar_1 当需要把变量替换和其他字符连接起来时需要用{}把变量包裹起来
+---
+substitutions:
+  device: esp32k1r1
+  name: esp32k1r1
+  num_leds: '1'
+  <<: !include common/substitutions/esp32-keyboard-relay.yaml
+
+globals:
+  - id: led_effect_selected
+    type: int
+    initial_value: '0'
+
+esphome:
+  name: $device
+  # friendly_name: $name
+  name_add_mac_suffix: yes
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: arduino
+  
+# Enable logging
+logger:
+
+<<: !include common/common.yaml
+
+script:
+  # 切换led灯光效果
+  - !include common/script/change-led-effect.yaml
+  # 单击按键 对应led 闪烁一次作为反馈
+  - !include common/script/turn-on-led-by-key.yaml
+
+light:
+  - !include common/light/led-light.yaml
+
+sensor:
+  - !include common/sensor/wifi-signal.yaml
+  - !include common/sensor/uptime.yaml
+  - !include common/sensor/internal-temperature.yaml
+
+
+switch:
+  - !include common/switch/restart.yaml
+
+  - platform: gpio
+    pin:
+      number: $relay_pin_1
+    name: ${name}_relay_1
+    id: ${name}_relay_1
+    restore_mode: RESTORE_DEFAULT_OFF
+
+binary_sensor:
+  - !include common/binary_sensor/status.yaml
+
+  - platform: gpio
+    pin: 
+      number: $key_1
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    internal: true
+    name: ${name}_btn_1
+    id: ${name}_btn_1
+    on_multi_click:
+    # 三连击 检查当前esphome处于什么状态
+    # api 已连接 蓝色灯闪烁
+    # wifi 已连接 绿色灯闪烁
+    # wifi 未连接 红色灯闪烁
+    # 其他 可以自由扩展 如 mqtt等
+    - timing:
+        - ON for at most 200ms
+        - OFF for at most 200ms
+        - ON for at most 200ms
+        - OFF for at most 200ms
+        - ON for at most 200ms
+        - OFF for at least 200ms
+      then:
+        - logger.log: "third-Clicked"
+        - if:
+            condition:
+              api.connected:
+            then:
+              - logger.log: API is connected!
+              - script.execute: 
+                  id: change_led_effect
+                  op: 1
+              - delay: 5000ms
+              - light.turn_off: led_light
+            else:
+              - if:
+                  condition:
+                    wifi.connected:
+                  then:
+                    - logger.log: WiFi is connected!
+                    - script.execute: 
+                        id: change_led_effect
+                        op: 2
+                    - delay: 5000ms
+                    - light.turn_off: led_light
+                  else:
+                    - logger.log: WiFi is unconnected!
+                    - script.execute: 
+                        id: change_led_effect
+                        op: 3
+                    - delay: 5000ms
+                    - light.turn_off: led_light
+    # 双击用来切换led灯光效果
+    # 依次按照配置好的顺序切换
+    # 需要通过单击 来关闭等效
+    - timing:
+        - ON for at most 500ms
+        - OFF for at most 500ms
+        - ON for at most 500ms
+        - OFF for at least 500ms
+      then:
+        - logger.log: "Double-Clicked"
+        - script.execute: 
+            id: change_led_effect
+            op: 0
+    # 长按2-4秒 设备重启
+    - timing:
+        - ON for 1s to 5s
+        - OFF for at least 1000ms
+      then:
+        - logger.log: "Long-Clicked"
+        - switch.turn_on: ${name}_restart
+    # 单击led灯闪烁一次 作为反馈
+    # 继电器状态反转
+    - timing: 
+        - ON for at most 300ms
+        - OFF for at least 300ms
+      then:
+        - logger.log: "Short-Clicked"
+        - switch.toggle: ${name}_relay_1
+        - script.execute: 
+            id: turn_on_led_by_key
+            led_num_from: 0
+            led_num_to: 0
+        - delay: 500ms
+        - light.turn_off: led_light
+

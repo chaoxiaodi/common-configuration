@@ -1,0 +1,4 @@
+---
+platform: restart
+name: ${name} Restart
+id: ${name}_restart

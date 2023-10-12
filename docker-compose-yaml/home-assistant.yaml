@@ -1,0 +1,14 @@
+# docker install home assistant
+# need create dir /data/ha
+
+version: '3'
+services:
+  homeassistant:
+    container_name: homeassistant
+    image: "homeassistant/home-assistant:stable"
+    volumes:
+      - /data/ha:/config
+      - /etc/localtime:/etc/localtime:ro
+    restart: unless-stopped
+    privileged: true
+    network_mode: host

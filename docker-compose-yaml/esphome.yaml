@@ -1,0 +1,14 @@
+# esphome install
+# need create dif /data/esphome
+
+version: '3'
+services:
+  esphome:
+    container_name: esphome
+    image: esphome/esphome
+    volumes:
+      - /data/esphome:/config
+      - /etc/localtime:/etc/localtime:ro
+    restart: always
+    privileged: true
+    network_mode: host

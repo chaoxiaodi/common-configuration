@@ -1,0 +1,20 @@
+# nextcloud install
+# need create /data/nextcloud
+
+version: '3'
+services:
+  nextcloud:
+    image: nextcloud
+    container_name: nextcloud
+    hostname: nextcloud
+    restart: unless-stopped
+    ports:
+      - 18080:80
+    volumes:
+      - /data/nextcloud/html:/var/www/html
+      - /data/nextcloud/apps:/var/www/html/custom_apps
+      - /data/nextcloud/config:/var/www/html/config
+      - /data/nextcloud/data:/var/www/html/data
+      - /data/nextcloud/theme:/var/www/html/themes
+    privileged: true
+    user: root

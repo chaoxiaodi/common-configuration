@@ -1,0 +1,131 @@
+---
+substitutions:
+  device: esp32k9r4
+  name: esp32k9r4
+  num_leds: '9'
+  <<: !include common/substitutions/esp32-keyboard-relay.yaml
+
+globals:
+  - id: led_effect_selected
+    type: int
+    initial_value: '0'
+
+esphome:
+  name: $device
+  # friendly_name: $name
+  name_add_mac_suffix: yes
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: arduino
+  
+# Enable logging
+logger:
+
+<<: !include common/common.yaml
+
+script:
+  # 切换led灯光效果
+  - !include common/script/change-led-effect.yaml
+  # 单击按键灯
+  - !include common/script/turn-on-led-by-key.yaml
+
+light:
+  - !include common/light/led-light.yaml
+
+sensor:
+  - !include common/sensor/wifi-signal.yaml
+  - !include common/sensor/uptime.yaml
+
+switch:
+  - !include common/switch/restart.yaml
+
+  - platform: gpio
+    pin:
+      number: $relay_pin_1
+      inverted: true
+    name: ${name}_relay_1
+    id: ${name}_relay_1
+
+binary_sensor:
+  - !include common/binary_sensor/status.yaml
+
+  - platform: gpio
+    pin: 
+      number: $key_1
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    internal: true
+    name: ${name}_btn_1
+    id: ${name}_btn_1
+    on_multi_click:
+    - timing:
+        - ON for at most 200ms
+        - OFF for at most 200ms
+        - ON for at most 200ms
+        - OFF for at most 200ms
+        - ON for at most 200ms
+        - OFF for at least 200ms
+      then:
+        - logger.log: "third-Clicked"
+        - if:
+            condition:
+              api.connected:
+            then:
+              - logger.log: API is connected!
+              - script.execute: 
+                  id: change_led_effect
+                  op: 1
+              - delay: 5000ms
+              - light.turn_off: led_light
+            else:
+              - if:
+                  condition:
+                    wifi.connected:
+                  then:
+                    - logger.log: WiFi is connected!
+                    - script.execute: 
+                        id: change_led_effect
+                        op: 2
+                    - delay: 5000ms
+                    - light.turn_off: led_light
+                  else:
+                    - logger.log: WiFi is unconnected!
+                    - script.execute: 
+                        id: change_led_effect
+                        op: 3
+                    - delay: 5000ms
+                    - light.turn_off: led_light
+
+    - timing:
+        - ON for at most 500ms
+        - OFF for at most 500ms
+        - ON for at most 500ms
+        - OFF for at least 500ms
+      then:
+        - logger.log: "Double-Clicked"
+        - script.execute: 
+            id: change_led_effect
+            op: 0
+    - timing:
+        - ON for 1s to 5s
+        - OFF for at least 1000ms
+      then:
+        - logger.log: "Long-Clicked"
+        - switch.turn_on: ${name}_restart
+    - timing: 
+        - ON for at most 300ms
+        - OFF for at least 300ms
+      then:
+        - logger.log: "Short-Clicked"
+        - switch.toggle: ${name}_relay_1
+        - script.execute: 
+            id: turn_on_led_by_key
+            led_num_from: 0
+            led_num_to: 0
+        - delay: 500ms
+        - light.turn_off: led_light
+

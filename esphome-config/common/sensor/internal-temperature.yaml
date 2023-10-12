@@ -1,0 +1,5 @@
+platform: internal_temperature
+name: ${name} CPU temperature
+unit_of_measurement: °C
+# filters:
+#   - lambda: return int((x + 1800.0) / 3600.0);

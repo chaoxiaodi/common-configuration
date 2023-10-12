@@ -1,0 +1,17 @@
+# gogs install
+# need create /data/gogs
+
+version: '3'
+services:
+  gogs:
+    image: gogs/gogs
+    container_name: gogs
+    hostname: gogs
+    restart: unless-stopped
+    ports:
+      - 10022:22
+      - 13000:3000
+    volumes:
+      - /data/gogs:/data
+    privileged: true
+    user: root

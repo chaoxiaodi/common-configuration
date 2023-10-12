@@ -1,0 +1,10 @@
+---
+platform: wifi_info
+ip_address:
+  name: ${name} IP Address
+ssid:
+  name: ${name} SSID
+mac_address:
+  name: ${name} Mac Wifi Address
+bssid:
+  name: ${name} BSSID

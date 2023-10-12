@@ -1,0 +1,5 @@
+platform: uptime
+name: ${name} Uptime
+unit_of_measurement: s
+# filters:
+#   - lambda: return int((x + 1800.0) / 3600.0);
