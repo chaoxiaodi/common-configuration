@@ -1,3 +1,10 @@
+<!--
+ * @Author: guangcai.liu
+ * @Date: 2023-10-12 11:52:24
+ * @LastEditors: guangcai.liu
+ * @LastEditTime: 2023-11-15 12:14:43
+ * @FilePath: /common-configuration/system-kernel/optimization.md
+-->
 # 关闭 selinux
 查看selinux 状态
 
@@ -54,7 +61,7 @@ setenforce 0
     net.ipv4.tcp_syncookies = 1
     net.ipv4.tcp_wmem = 4096 12582912 16777216
     net.ipv4.tcp_rmem = 4096 12582912 16777216
-    net.ipv4.tcp_max_syn_backlog = 8096
+    net.ipv4.tcp_max_syn_backlog = 8192
     net.ipv4.tcp_slow_start_after_idle = 0
     net.ipv4.tcp_tw_reuse = 1
     net.ipv4.tcp_tw_recycle = 1
