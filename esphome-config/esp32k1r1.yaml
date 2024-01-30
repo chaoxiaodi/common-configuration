@@ -21,11 +21,13 @@ esphome:
   name: $device
   # friendly_name: $name
   name_add_mac_suffix: yes
+  platformio_options:
+    board_build.flash_mode: dio
 
 esp32:
   board: esp32-c3-devkitm-1
   framework:
-    type: arduino
+    type: esp-idf
   
 # Enable logging
 logger:

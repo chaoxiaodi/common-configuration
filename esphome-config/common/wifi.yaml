@@ -6,4 +6,5 @@ wifi:
   ap:
     ssid: ${device}
     password: !secret ap_wifi_password
+
 captive_portal:

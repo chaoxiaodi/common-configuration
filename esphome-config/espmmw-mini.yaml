@@ -1,0 +1,299 @@
+substitutions:
+  device: espmmw
+  name: espmmw-mini
+  device_name: espmmw
+  reboot_timeout: 14d
+
+  # 原版
+  # remote_receiver_pin: GPIO0
+  # remote_transmitter_pin: GPIO1
+  # button_reset_pin: GPIO2
+  # brightness_pin: GPIO3
+  # mmw_pin: GPIO4
+  # mmw_serial_rx_pin: GPIO5
+  # mmw_serial_tx_pin: GPIO6
+
+  # 改版
+  remote_receiver_pin: GPIO7
+  remote_transmitter_pin: GPIO1
+  button_reset_pin: GPIO9
+  brightness_pin: GPIO0
+  mmw_pin: GPIO2
+  mmw_serial_rx_pin: GPIO3
+  mmw_serial_tx_pin: GPIO6
+
+
+esphome:
+  name: ${device_name}
+  name_add_mac_suffix: yes
+  includes:
+    - mmw/XRA2413MT-mini.h
+  platformio_options:
+    # which goes into a boot loop
+    # https://github.com/platformio/platform-espressif32/blob/b0a7f56bcde9fa332b40111b1423482d8f7cbc77/boards/ttgo-t7-v13-mini32.json
+    board_build.flash_mode: dio
+    board_build.extra_flags:
+      - "-include \"/Users/guangcai.liu/data/esphome/config/mmw/fix_api_remote_transmitter.h\""
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: esp-idf
+
+logger:
+
+<<: !include common/common.yaml
+
+uart:
+  id: uart_bus
+  rx_pin: $mmw_serial_rx_pin
+  tx_pin: $mmw_serial_tx_pin
+  baud_rate: 256000
+  data_bits: 8
+  stop_bits: 1
+
+globals:
+  - id: uart_delay
+    type: int
+    restore_value: true
+    initial_value: "100"
+  - id: start
+    type: std::vector<unsigned char>
+    restore_value: false
+    initial_value: "{0xFD, 0xFC, 0xFB, 0xFA, 0x04, 0x00, 0xFF, 0x00, 0x01, 0x00, 0x04, 0x03, 0x02, 0x01}"
+  - id: end
+    type: std::vector<unsigned char>
+    restore_value: false
+    initial_value: "{0xFD, 0xFC, 0xFB, 0xFA, 0x02, 0x00, 0xFE, 0x00, 0x04, 0x03, 0x02, 0x01}"
+  - id: conf
+    type: std::vector<unsigned char>
+    restore_value: false
+    initial_value: "{0xFD, 0xFC, 0xFB, 0xFA, 0x02, 0x00, 0x61, 0x00, 0x04, 0x03, 0x02, 0x01}"
+  - id: defaut_distance
+    type: std::vector<unsigned char>
+    restore_value: false
+    initial_value: "{0xFD, 0xFC, 0xFB, 0xFA, 0x14, 0x00, 0x60, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x06, 0x00, 0x00, 0x00, 0x02, 0x00, 0x05, 0x00, 0x00, 0x00, 0x04, 0x03, 0x02, 0x01}"
+  - id: defaut_sensitivity
+    type: std::vector<unsigned char>
+    restore_value: false
+    initial_value: "{0xFD, 0xFC, 0xFB, 0xFA, 0x14, 0x00, 0x64, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x01, 0x00, 0x63, 0x00, 0x00, 0x00, 0x02, 0x00, 0x0F, 0x00, 0x00, 0x00, 0x04, 0x03, 0x02, 0x01}"
+  - id: max_move_distance
+    type: int
+    restore_value: true
+    initial_value: "0"
+  - id: max_static_distance
+    type: int
+    restore_value: true
+    initial_value: "0"
+  - id: unattended_duration
+    type: int
+    restore_value: true
+    initial_value: "0"
+  - id: move_sensitivity
+    type: int
+    restore_value: true
+    initial_value: "0"
+  - id: static_sensitivity
+    type: int
+    restore_value: true
+    initial_value: "0"
+
+button:
+  - platform: restart
+    name: ${device_name}_reboot
+  - platform: template
+    id: ${device_name}_get_conf
+    name: ${device_name}_get_conf
+    on_press:
+      - uart.write: !lambda return id(start);
+      - delay: !lambda return id(uart_delay);
+      - uart.write: !lambda return id(conf);
+      - delay: !lambda return id(uart_delay);
+      - uart.write: !lambda return id(end);
+  - platform: template
+    id: ${device_name}_reset_mmw
+    name: ${device_name}_reset_mmw
+    on_press:
+      - uart.write: !lambda return id(start);
+      - delay: !lambda return id(uart_delay);
+      - uart.write: !lambda return id(defaut_distance);
+      - uart.write: !lambda return id(defaut_sensitivity);
+      - delay: !lambda return id(uart_delay);
+      - uart.write: !lambda return id(end);
+
+number:
+  - platform: template
+    id: ${device_name}_max_move_distance
+    name: ${device_name}_max_move_distance
+    optimistic: true
+    min_value: 2
+    max_value: 6
+    step: 1
+    unit_of_measurement: x 0.75m
+    set_action:
+      - globals.set:
+          id: max_move_distance
+          value: !lambda return x;
+      - uart.write: !lambda return id(start);
+      - delay: !lambda return id(uart_delay);
+      - uart.write: !lambda return {0xFD, 0xFC, 0xFB, 0xFA, 0x14, 0x00, 0x60, 0x00, 0x00, 0x00, (unsigned char)x, 0x00, 0x00, 0x00, 0x01, 0x00, (unsigned char)id(max_static_distance), 0x00, 0x00, 0x00, 0x02, 0x00, (unsigned char)id(unattended_duration), 0x00, 0x00, 0x00, 0x04, 0x03, 0x02, 0x01};
+      - delay: !lambda return id(uart_delay);
+      - uart.write: !lambda return id(end);
+  - platform: template
+    id: ${device_name}_max_static_distance
+    name: ${device_name}_max_static_distance
+    optimistic: true
+    min_value: 2
+    max_value: 6
+    step: 1
+    unit_of_measurement: x 0.75m
+    set_action:
+      - globals.set:
+          id: max_static_distance
+          value: !lambda return x;
+      - uart.write: !lambda return id(start);
+      - delay: !lambda return id(uart_delay);
+      - uart.write: !lambda return {0xFD, 0xFC, 0xFB, 0xFA, 0x14, 0x00, 0x60, 0x00, 0x00, 0x00, (unsigned char)id(max_move_distance), 0x00, 0x00, 0x00, 0x01, 0x00, (unsigned char)x, 0x00, 0x00, 0x00, 0x02, 0x00, (unsigned char)id(unattended_duration), 0x00, 0x00, 0x00, 0x04, 0x03, 0x02, 0x01};
+      - delay: !lambda return id(uart_delay);
+      - uart.write: !lambda return id(end);
+  - platform: template
+    id: ${device_name}_unattended_duration
+    name: ${device_name}_unattended_duration
+    optimistic: true
+    min_value: 0
+    max_value: 600
+    step: 1
+    mode: box
+    unit_of_measurement: s
+    set_action:
+      - globals.set:
+          id: unattended_duration
+          value: !lambda return x;
+      - uart.write: !lambda return id(start);
+      - delay: !lambda return id(uart_delay);
+      - uart.write: !lambda return {0xFD, 0xFC, 0xFB, 0xFA, 0x14, 0x00, 0x60, 0x00, 0x00, 0x00, (unsigned char)id(max_move_distance), 0x00, 0x00, 0x00, 0x01, 0x00, (unsigned char)id(max_static_distance), 0x00, 0x00, 0x00, 0x02, 0x00, (unsigned char)x, 0x00, 0x00, 0x00, 0x04, 0x03, 0x02, 0x01};
+      - delay: !lambda return id(uart_delay);
+      - uart.write: !lambda return id(end);
+  - platform: template
+    id: ${device_name}_move_sensitivity
+    name: ${device_name}_move_sensitivity
+    optimistic: true
+    min_value: 0
+    max_value: 100
+    step: 1
+    mode: box
+    set_action:
+      - globals.set:
+          id: move_sensitivity
+          value: !lambda return x;
+      - uart.write: !lambda return id(start);
+      - delay: !lambda return id(uart_delay);
+      - uart.write: !lambda return {0xFD, 0xFC, 0xFB, 0xFA, 0x14, 0x00, 0x64, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x01, 0x00, (unsigned char)x, 0x00, 0x00, 0x00, 0x02, 0x00, (unsigned char)id(static_sensitivity), 0x00, 0x00, 0x00, 0x04, 0x03, 0x02, 0x01};
+      - delay: !lambda return id(uart_delay);
+      - uart.write: !lambda return id(end);
+  - platform: template
+    id: ${device_name}_static_sensitivity
+    name: ${device_name}_static_sensitivity
+    optimistic: true
+    min_value: 0
+    max_value: 100
+    step: 1
+    mode: box
+    set_action:
+      - globals.set:
+          id: static_sensitivity
+          value: !lambda return x;
+      - uart.write: !lambda return id(start);
+      - delay: !lambda return id(uart_delay);
+      - uart.write: !lambda return {0xFD, 0xFC, 0xFB, 0xFA, 0x14, 0x00, 0x64, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x01, 0x00, (unsigned char)id(move_sensitivity), 0x00, 0x00, 0x00, 0x02, 0x00, (unsigned char)x, 0x00, 0x00, 0x00, 0x04, 0x03, 0x02, 0x01};
+      - delay: !lambda return id(uart_delay);
+      - uart.write: !lambda return id(end);
+
+binary_sensor:
+  - platform: gpio
+    pin: $mmw_pin
+    id: ${device_name}_mmw
+    name: ${device_name}_mmw
+    device_class: occupancy
+  - platform: gpio
+    pin:
+      number: $button_reset_pin
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    name: ${device_name}_button
+    on_press:
+      then:
+        - button.press: ${device_name}_reset_mmw
+
+sensor:
+  - platform: uptime
+    name: ${device_name}_uptime
+  - platform: wifi_signal
+    name: ${device_name}_signal
+    update_interval: 60s
+  - platform: adc
+    pin: $brightness_pin
+    name: ${device_name}_brightness
+    attenuation: 11db
+    update_interval: 30s
+    unit_of_measurement: "%"
+    icon: mdi:brightness-6
+    accuracy_decimals: 0
+    filters:
+      - lambda: |-
+          return ( 3 - x ) / 0.03;
+  - platform: internal_temperature
+    id: ${device_name}_cpu_temprature 
+    name: ${device_name}_cpu_temprature
+  - platform: custom
+    lambda: |-
+      auto xra2413mt = new XRA2413MT(id(uart_bus));
+      App.register_component(xra2413mt);
+      return {xra2413mt->max_move_distance_sensor, 
+      xra2413mt->max_static_distance_sensor,
+      xra2413mt->unattended_duration_sensor,
+      xra2413mt->move_sensitivity_sensor,
+      xra2413mt->static_sensitivity_sensor};
+    sensors:
+      - name: max_move_distance_sensor
+        internal: true
+        on_value:
+          then:
+            - number.set:
+                id: ${device_name}_max_move_distance
+                value: !lambda return x;
+      - name: max_static_distance_sensor
+        internal: true
+        on_value:
+          then:
+            - number.set:
+                id: ${device_name}_max_static_distance
+                value: !lambda return x;
+      - name: unattended_duration_sensor
+        internal: true
+        on_value:
+          then:
+            - number.set:
+                id: ${device_name}_unattended_duration
+                value: !lambda return x;
+      - name: move_sensitivity_sensor
+        internal: true
+        on_value:
+          then:
+            - number.set:
+                id: ${device_name}_move_sensitivity
+                value: !lambda return x;
+      - name: static_sensitivity_sensor
+        internal: true
+        on_value:
+          then:
+            - number.set:
+                id: ${device_name}_static_sensitivity
+                value: !lambda return x;
+
+remote_transmitter:
+  pin: $remote_transmitter_pin
+  carrier_duty_percent: 50%
+
