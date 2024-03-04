@@ -1,0 +1,13 @@
+access_key_id: LTAI5t7exxxxx
+access_key_secret: soymxxxxxx
+domain_records:
+  - domain_name: my.domainname
+    rr: test-ipv6
+    type: AAAA
+  - domain_name: my.domainname
+    rr: test-ipv4
+    type: A
+
+
+  
+  

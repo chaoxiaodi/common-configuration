@@ -8,13 +8,17 @@ services:
     container_name: nextcloud
     hostname: nextcloud
     restart: unless-stopped
-    ports:
-      - 18080:80
+    # ports:
+    #   - 18080:80
+    network_mode: host
     volumes:
       - /data/nextcloud/html:/var/www/html
       - /data/nextcloud/apps:/var/www/html/custom_apps
       - /data/nextcloud/config:/var/www/html/config
       - /data/nextcloud/data:/var/www/html/data
       - /data/nextcloud/theme:/var/www/html/themes
+    environment:
+      - PHP_UPLOAD_LIMIT=16G
+      - PHP_MEMORY_LIMIT=4G
     privileged: true
     user: root

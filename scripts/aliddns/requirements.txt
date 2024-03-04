@@ -1,0 +1,4 @@
+alibabacloud-alidns20150109==3.1.0
+loguru==0.7.2
+requests==2.31.0
+ruamel.yaml==0.18.5
